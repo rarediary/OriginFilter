@@ -1,4 +1,21 @@
-# OriginFilter 0.8.0
+# OriginFilter — free desktop social-feed filter (public beta v0.8.0)
+
+**[Download Chrome beta](https://github.com/rarediary/OriginFilter/releases/download/v0.8.0/OriginFilter-chrome-0.8.0.zip)** · **[Download Firefox beta](https://github.com/rarediary/OriginFilter/releases/download/v0.8.0/OriginFilter-firefox-0.8.0.zip)** · **[Report bugs / become a tester](https://github.com/rarediary/OriginFilter/issues/1)**
+
+**What it does:** Reduces non-English text and filters accounts with available non-US country evidence on the **X, Facebook and YouTube websites**. Supports a US country allowlist, keyword/account blocking and a local-first design. **Account origin is often unknown; this is not guaranteed US-only content.** The 80% reduction target is not yet measured on live feeds.
+
+### Install in two minutes
+
+- **Chrome/Chromium desktop:** extract the Chrome ZIP, open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked** and select the extracted folder.
+- **Firefox desktop:** extract the Firefox ZIP, open `about:debugging#/runtime/this-firefox`, select **Load Temporary Add-on**, choose `manifest.json` in the extracted folder. Firefox removes this temporary install on restart; public signed add-on publication is still pending.
+
+Reload your open X/Facebook/YouTube tabs, then open the extension popup to choose settings. Country lookups and sponsored notices are off until enabled. You don't need an account, money, or external hosting.
+
+**This is experimental:** browser checks were synthetic; live authenticated sites and country coverage still need testing. Please help by reporting which filters work and which don't. Do not share credentials, private browsing data or personal messages.
+
+---
+
+## Technical details — v0.8.0
 
 **PC-only development release:** Firefox and Chrome. Supported sites: X, Facebook and YouTube websites (not their native apps). Instagram and Android are on hold.
 

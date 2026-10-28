@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Beta downloads and install instructions
+    url: https://github.com/rarediary/OriginFilter/releases/tag/v0.8.0
+    about: Get the experimental Chrome or Firefox release.
+  - name: Beta testing discussion
+    url: https://github.com/rarediary/OriginFilter/issues/1
+    about: Start here and see the known beta limitations.

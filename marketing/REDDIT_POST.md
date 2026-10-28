@@ -1,19 +1,29 @@
-# Early-adopter post (not published)
+# Reddit beta announcement — ready to post, NOT yet posted
 
-Suggested community: r/firefox or r/SideProject, **only if its self-promotion rules allow a disclosure and a link**. One relevant post and real replies are better than crossposting the same message across many communities.
+**Use only in communities where developers can share free betas. Read the current community rules.** Suggested: r/alphaandbetausers first, or r/SideProject when permitted. Do not carpet-bomb subreddits or claim the app was approved by stores.
 
-**Title:** I built a free Firefox extension to reduce unwanted-language content in X, Facebook and YouTube feeds — looking for testers
+## Title
 
-**Body:**
+I made a free PC extension that reduces unwanted non-English posts on X, Facebook and YouTube — looking for beta testers
 
-I'm building OriginFilter, a free browser extension that tries to filter English-language posts and video titles in X, Facebook, and YouTube web feeds. It can suppress known non-US creators when evidence of an account's country is available, and it has a strict mode that hides unknown-country accounts too.
+## Body
 
-Country coverage is **still limited**: YouTube lookups use optional public channel metadata, X records are currently captured from encountered account disclosures, and Facebook country data isn't automated. I'm not claiming it verifies every creator's location.
+I got tired of social feeds where I couldn't control the language or where the creators were based, so I've been working on a desktop browser extension called **OriginFilter**.
 
-It's local-first, and you can pause the filtering or reveal a hidden post. I'm investigating optional, clearly labeled sponsorships to keep it free; there are no live paid sponsors yet.
+It tries to filter clearly non-English written posts and video titles, and uses **explicit country information when available** to hide known non-US accounts. It also has keyword/account blocking, local learning of repeated posting languages, and a pause switch.
 
-I'm the developer, and I'd like feedback about false positives, feed compatibility and what country transparency information you'd expect to see. If you'd test it, I'll share the Mozilla listing once approved. [Insert real signed/store listing URL when available.]
+**It's still a beta.** A lot of accounts don't expose trustworthy country information (Facebook in particular), so I'm not claiming perfect US-only feeds. English filtering doesn't analyze video audio. I've tested the code on simulated feeds, but I need actual testers to see which websites still break.
+
+It's free, open source, and needs no registration or paid hosting. Optional public YouTube lookups and optional labeled sponsorships are off by default. No paying sponsors are running.
+
+**Public beta downloads:** https://github.com/rarediary/OriginFilter/releases/tag/v0.8.0
+
+Chrome uses **Load unpacked** because it isn't in the store yet. Firefox uses **Load Temporary Add-on**, which stops working on restart until there's a signed listing. The GitHub README has the steps.
+
+I would appreciate feedback on whether it installs, catches the posts you expected, causes false positives, or slows down scrolling. Please report at https://github.com/rarediary/OriginFilter/issues/1
+
+I'm the developer of OriginFilter. It's independent of X, Meta and Google.
 
 ---
 
-**Never** claim the extension is already approved, already earning money, or available from an unverified store URL. Do not post an installation link that only the repo owner can access. Do not repeatedly post the same pitch to unrelated communities. This file is promotional copy, not evidence a Reddit submission happened.
+Status: **drafted in GitHub only, not submitted to Reddit.** Prefer releasing a signed browser extension before broad promotion if users hesitate to sideload development extensions.

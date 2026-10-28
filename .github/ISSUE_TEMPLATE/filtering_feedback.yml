@@ -1,0 +1,52 @@
+name: Filtering feedback
+description: Report a false positive or missed post without sharing private content.
+title: "[Feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help improve the beta without exposing your private browsing information. A description is enough; screenshots are optional.
+  - type: dropdown
+    id: site
+    attributes:
+      label: Website
+      options:
+        - X
+        - Facebook
+        - YouTube
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: What needs improvement?
+      options:
+        - Non-English content was not hidden
+        - English content was incorrectly hidden
+        - Country rule gave an unexpected result
+        - Too much content disappeared
+        - Scrolling or performance issue
+        - Other idea
+    validations:
+      required: true
+  - type: textarea
+    id: preferences
+    attributes:
+      label: Relevant settings
+      description: In particular, say whether strict unknown-country blocking was enabled.
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Do not include private feed URLs or personally identifying screenshots.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed credentials, private messages and sensitive browsing details.
+          required: true
