@@ -1,66 +1,49 @@
-# OriginFilter 0.6.0
+# OriginFilter 0.7.0
 
-PC-only development build. Firefox first, Chrome second. **X, Facebook and YouTube** are the current targets; Instagram and Android are out of this phase.
+**PC-only development release:** Firefox and Chrome. Supported sites: X, Facebook and YouTube websites (not their native apps). Instagram and Android are on hold.
 
-## Implemented
+## Working features
 
-- Browser-native, local text-language detection instead of alphabet-to-language guesses.
-- English-only rules, keyword blocking and account blocking.
-- Incremental card processing, bounded language cache, and recycled-card handling.
-- Separate known-country and unknown-country decisions. Unknown never means foreign.
-- Strict country mode (US by default) with explanatory placeholders and Show once.
-- Optional direct public YouTube About lookups, no API key or OriginFilter server. Consent required; login cookies omitted. One request per 10 seconds, 120/day maximum, timeout and backoff on access errors. Country results cache for seven days; missing/error results also cache.
-- Passive X account-country disclosure capture when the user opens `/handle/about`. This does NOT automatically investigate every timeline author.
-- Country cache, source labels, expiry and deletion controls. Legacy manual records remain personal overrides.
-- Same shared source for both browsers, bundled privacy notice, logo and build script.
+- English-language text filtering using the browser's language detector.
+- Local keyword and account blocking.
+- Country allowlist (US by default) for accounts with reliable country evidence; explicit unknown-country handling.
+- Optional direct public YouTube channel About lookup with daily limits, no login cookies, local cache.
+- Country disclosure capture from X About pages actually visited.
+- Incremental feed processing, reversible filtering and a Show once button.
+- **Opt-in, no-tracking sponsor placement engine:** labels, removable settings, at most two/day, one per 12 blocked posts, 30-minute cooldown. **No paying sponsor is bundled and no payment processor is connected.** A demo appears only inside the popup.
+- Safeguards to avoid filtering identified native paid posts on supported sites.
 
-## Important limitations
+## Important limits
 
-**This is not a finished automatic US-only commercial service.** Facebook's automatic origin source is unresolved. X origin coverage depends on disclosures actually encountered. The YouTube parser only accepts explicit About-country metadata bound to a channel ID; if a page is unavailable, changes format, or omits country, the result is unknown. YouTube country is self-declared, not proof of residence. Video/audio language is not analyzed; YouTube filtering uses titles. Store signing/publishing, live logged-in compatibility and sponsorship sales are not completed.
+**This does not reliably show only US-origin content.** Most accounts don't provide accessible country evidence, and automated Facebook-origin detection remains unavailable. Unknown-country strict mode may hide most posts. Native video speech language is not analyzed. Website changes can break adapters. The extension has not been tested on live authenticated feeds or published in extension stores. Revenue is $0 until a payment processor and actual advertisers are connected.
 
-Strict mode may hide most posts because many countries are unknown. Switch “When account country is unknown” to Show for less restrictive operation. No proxy, VPN, server-side region hack, private-message inspection, IP attribution, race classification, or hidden AI service is used.
+## Install locally on PC
 
-## Install on PC
+Firefox: extract the Firefox ZIP. Open `about:debugging#/runtime/this-firefox` → Load Temporary Add-on → choose `manifest.json` from the extracted folder. Firefox temporary installs disappear after restart. Store publication requires Mozilla signing.
 
-Firefox: extract `dist/OriginFilter-firefox-0.6.0.zip`; open `about:debugging#/runtime/this-firefox`; select Load Temporary Add-on and the extracted `manifest.json`. This temporary install ends on browser restart. A signed Firefox store package has not been obtained.
+Chrome: extract the Chrome ZIP. Open `chrome://extensions` → Developer mode → Load unpacked → select the extracted folder.
 
-Chrome: extract `dist/OriginFilter-chrome-0.6.0.zip`; open `chrome://extensions`, enable Developer mode, choose Load unpacked and select the extracted folder.
+Refresh already-open X, Facebook and YouTube tabs. Open the extension popup to configure the filters. Optional YouTube country lookups and sponsorships are OFF until expressly enabled.
 
-Refresh already open supported tabs after installation. Open the toolbar popup, choose your rules and save. Public YouTube lookups are OFF until you explicitly consent. No paid service is required.
+## Build / validation
 
-## Build and checks
-
-Python 3.10+ and Node 18+:
+Python 3.10+ and Node 18+ required:
 
 ```
 python tools/build.py
-node --test tests/core.test.js
-```
-
-Optional synthetic DOM checks need Python Playwright and Chromium:
-
-```
+node --test tests/core.test.js tests/ads.test.js
 python tests/browser_smoke.py
+python tests/sponsor_browser.py
 ```
 
-`extension/` is canonical. `firefox/` and `chrome/` are generated copies with browser-specific manifests. The browser ZIPs deliberately place `manifest.json` at the ZIP root, as required for extension packaging; the source ZIP has a matching top-level folder.
+The core and ad scheduler unit tests and synthetic browser tests were run in this workspace. Synthetic tests use mocked browser APIs and do NOT validate store approvals, live social feeds, production country coverage, payments or ad sales.
 
-### Verification performed in this development session
+`extension/` is the canonical shared implementation. `firefox/` and `chrome/` are generated separately. Archive `manifest.json` appears at the ZIP root.
 
-24 core tests passed. Synthetic Chromium 144 DOM checks passed for all three adapters, including new-card detection, language decisions with a mocked detector, cached-country changes, strict unknown handling, pause/restoration and no repeated idle classifications. This environment blocks actual extension installation and external social-page navigation by administrator policy. The checks therefore used local synthetic DOMs, mocked extension APIs/language results and a fixture URL—not logged-in feeds, installed Firefox, or the native language model. See `tests/browser-results.json`.
+## Business
 
-## Monetization
+Core filtering remains free, with optional sponsored notices. Campaigns are built into a static catalog: `extension/sponsor-catalog.json`. See `advertising/README.md` for campaign format and policy restrictions, and `marketing/LAUNCH.md` for a zero-hosting launch strategy. No Stripe connection, payout setup, signed store listing, or public Reddit announcement exists yet.
 
-The chosen model remains free filtering supported by occasional explicitly disclosed, opt-in sponsorships. No advertising, ad network, payment processing or billing is active in this build. Do not sell browsing histories or treat a technical placement as permission to inject advertisements into other sites.
+## Privacy
 
-## Previous backend
-
-Existing `backend/` code remains in GitHub as a separate experimental development API. Version 0.6.0 does not call it or require hosting. It is not a production service and should not be exposed publicly.
-
-## Technical references
-
-- https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/i18n/detectLanguage
-- https://developer.chrome.com/docs/extensions/reference/api/i18n
-- https://developers.google.com/youtube/data/reference/rest/v3/channels
-- https://help.x.com/en/managing-your-account/how-to-change-country-settings
-- https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/
+No extension-operated server, analytics SDK, browser-history sale, automated reporting, or ad click telemetry. Country records, sponsor counters and preferences stay local. Optional YouTube channel requests go directly to YouTube and disclose requested channel IDs/handles to YouTube's servers. See `extension/privacy.html`.

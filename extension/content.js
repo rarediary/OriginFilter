@@ -21,16 +21,36 @@
       const box=document.createElement('div'),text=document.createElement('span'),button=document.createElement('button');
       button.type='button';button.textContent='Show once';
       button.addEventListener('click',()=>{st.showOnce=st.fingerprint;render(st,'');});
-      box.append(text,button);shadow.append(style,box);st.notice=host;st.label=text;
+      const sponsor=document.createElement('aside');
+      sponsor.style.cssText='margin-top:7px;padding:10px;background:#1a3046;border:1px solid #6684a1;border-radius:7px;color:#e8f0fc;font:12px system-ui';
+      const marker=document.createElement('div');marker.textContent='ORIGINFILTER · SPONSORED · NOT A PLATFORM POST';
+      marker.style.cssText='font-size:9px;letter-spacing:.06em;color:#bdd5ef;margin-bottom:5px';
+      const adLink=document.createElement('a');adLink.target='_blank';adLink.rel='noopener noreferrer sponsored';
+      adLink.style.cssText='font-weight:700;color:#9fccff;text-decoration:underline';
+      const detail=document.createElement('p');detail.style.cssText='margin:5px 0 0;font:11px/1.4 system-ui;color:#d7e2f3';
+      sponsor.append(marker,adLink,detail);sponsor.hidden=true;
+      box.append(text,button);shadow.append(style,box,sponsor);
+      st.notice=host;st.label=text;st.sponsorBox=sponsor;st.sponsorLink=adLink;st.sponsorDetail=detail;
     }
     st.label.textContent='OriginFilter · '+label;
+    const ad=cfg.sponsorPlacements?st.sponsor:null;
+    st.sponsorBox.hidden=!ad;
+    if(ad){st.sponsorLink.textContent=ad.advertiser+' — '+ad.title;st.sponsorLink.href=ad.url;st.sponsorDetail.textContent=ad.description;}
     if(st.el.previousSibling!==st.notice)st.el.before(st.notice);
   }
   const labels={'keyword':'Blocked keyword','account':'Blocked account','language':'Not English','unknown-language':'Language unknown','country':'Outside selected countries','unknown-country':'Country unknown'};
   function render(st,reason){
     st.reason=reason;
-    if(!reason){st.el.removeAttribute('data-originfilter-blocked');st.notice?.remove();st.notice=null;return;}
+    if(!reason){st.el.removeAttribute('data-originfilter-blocked');st.notice?.remove();st.notice=null;st.sponsor=null;return;}
     st.el.setAttribute('data-originfilter-blocked',reason);notice(st,labels[reason]||reason);
+  }
+  function offerSponsor(st,reason,requestEpoch,fingerprint) {
+    if(!reason || !cfg.sponsorPlacements || st.sponsorRequested===fingerprint)return;
+    st.sponsorRequested=fingerprint;
+    call(api.runtime,'sendMessage',{type:'of:sponsor-candidate',site}).then(response=>{
+      if(!cfg.sponsorPlacements || st.fingerprint!==fingerprint || requestEpoch!==epoch || !st.el.isConnected || !st.reason)return;
+      if(response?.ad){st.sponsor=response.ad;render(st,st.reason);}
+    }).catch(()=>{});
   }
   function cleanup(){
     for(const [el,st] of states)if(!el.isConnected || !A.isCard(el,site)){render(st,'');states.delete(el);dirty.delete(el);}
@@ -61,7 +81,7 @@
       let st=states.get(el);
       if(!st){st={el,token:0,reason:'',fingerprint:'',epoch:-1,notice:null};states.set(el,st);}
       if(st.fingerprint===fingerprint && st.epoch===epoch)continue;
-      if(st.fingerprint!==fingerprint)st.showOnce=null;
+      if(st.fingerprint!==fingerprint){st.showOnce=null;st.sponsor=null;st.sponsorRequested=null;}
       st.fingerprint=fingerprint;st.epoch=epoch;st.author=item.author;st.key=C.accountKey(site,item.author);
       const token=++st.token,requestEpoch=epoch;
       if(st.showOnce===fingerprint){render(st,'');continue;}
@@ -69,8 +89,8 @@
       render(st,C.decide(item,{language:null,country:null},cfg));running++;
       call(api.runtime,'sendMessage',{type:'of:classify',item}).then(result=>{
         if(st.token!==token || requestEpoch!==epoch || !el.isConnected || st.showOnce===fingerprint)return;
-        st.result=result||{};render(st,C.decide(item,st.result,cfg));
-      }).catch(()=>{if(st.token===token && requestEpoch===epoch)render(st,C.decide(item,{},cfg));})
+        st.result=result||{};const reason=C.decide(item,st.result,cfg);render(st,reason);offerSponsor(st,reason,requestEpoch,fingerprint);
+      }).catch(()=>{if(st.token===token && requestEpoch===epoch){const reason=C.decide(item,{},cfg);render(st,reason);offerSponsor(st,reason,requestEpoch,fingerprint);}})
         .finally(()=>{running--;schedule();});
     }
     if(dirty.size && running<4)schedule();
@@ -79,7 +99,7 @@
   function allCards(){all();}
   api.storage.onChanged.addListener((changes,area)=>{
     if(area!=='local')return;
-    if(changes.settings){cfg=C.config(changes.settings.newValue);epoch++;for(const st of states.values())st.showOnce=null;all();}
+    if(changes.settings){cfg=C.config(changes.settings.newValue);epoch++;for(const st of states.values()){st.showOnce=null;st.sponsor=null;st.sponsorRequested=null;st.epoch=-1;}all();}
     else if(changes.originCache){
       const old=changes.originCache.oldValue||{},next=changes.originCache.newValue||{};
       for(const st of states.values())if(st.key && JSON.stringify(old[st.key])!==JSON.stringify(next[st.key])){st.epoch=-1;dirty.add(st.el);}

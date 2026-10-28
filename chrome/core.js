@@ -3,7 +3,7 @@
   'use strict';
   const CODES = new Set(('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW').split(' '));
   const DAY = 86400000;
-  const DEFAULTS = Object.freeze({enabled:true, englishOnly:true, unknownLanguage:'show', allowedCountries:['US'], unknownCountry:'hide', keywords:[], blockedAccounts:[], youtubeLookups:false, showPlaceholders:true});
+  const DEFAULTS = Object.freeze({enabled:true, englishOnly:true, unknownLanguage:'show', allowedCountries:['US'], unknownCountry:'hide', keywords:[], blockedAccounts:[], youtubeLookups:false, showPlaceholders:true, sponsorPlacements:false});
   const own = (o,k) => o != null && Object.prototype.hasOwnProperty.call(o,k);
   const list = v => Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string').map(x => x.trim()).filter(Boolean))].slice(0,500) : [];
   function config(v={}) {
@@ -12,7 +12,7 @@
       allowedCountries: own(v,'allowedCountries') ? list(v.allowedCountries).map(x=>x.toUpperCase()).filter(x=>CODES.has(x)) : ['US'],
       unknownCountry: ['show','hide'].includes(v.unknownCountry) ? v.unknownCountry : own(v,'strictUnknown') ? (v.strictUnknown ? 'hide' : 'show') : v.unknownCountryPolicy === 'allow' ? 'show' : 'hide',
       keywords:list(v.keywords).map(x=>x.toLocaleLowerCase()), blockedAccounts:list(v.blockedAccounts),
-      youtubeLookups:v.youtubeLookups === true, showPlaceholders:v.showPlaceholders !== false};
+      youtubeLookups:v.youtubeLookups === true, showPlaceholders:v.showPlaceholders !== false, sponsorPlacements:v.sponsorPlacements === true};
   }
   function platform(host) {
     host = String(host).toLowerCase();

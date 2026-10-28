@@ -8,7 +8,12 @@
     if(!el?.matches?.(selectors[site]) || el.closest(blockedContext)) return false;
     if(el.parentElement?.closest(selectors[site])) return false;
     if(site==='facebook' && el.closest('[role="dialog"], [role="complementary"]')) return false;
-    if(site==='youtube' && !el.querySelector('a[href*="/watch?"], a[href^="/shorts/"]')) return false;
+    // Never modify native paid placements: required by browser-store ad rules.
+    if(site==='x' && el.querySelector('[data-testid="placementTracking"], [data-testid="promotedIndicator"]')) return false;
+    if(site==='facebook' && (el.querySelector('[aria-label="Sponsored"], [data-pagelet*="Ad"]') ||
+      [...el.querySelectorAll('a,span')].some(n=>n.childElementCount===0 && n.textContent?.trim()==='Sponsored'))) return false;
+    if(site==='youtube' && (el.querySelector('ytd-ad-slot-renderer, ytd-promoted-video-renderer, [aria-label="Ad"]') ||
+      !el.querySelector('a[href*="/watch?"], a[href^="/shorts/"]'))) return false;
     return true;
   }
   function ownNodes(card,selector,site) {return [...card.querySelectorAll(selector)].filter(n=>n.closest(selectors[site])===card || (site==='youtube' && card.contains(n)));}

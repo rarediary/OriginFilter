@@ -1,7 +1,7 @@
 /* Local language detection and opt-in, rate-limited public YouTube About lookups. */
 'use strict';
-if(typeof importScripts==='function') importScripts('core.js');
-const C=globalThis.OriginCore;
+if(typeof importScripts==='function') importScripts('core.js','ads.js');
+const C=globalThis.OriginCore, Ads=globalThis.OriginAds;
 const api=globalThis.browser ?? globalThis.chrome;
 const promiseAPI=typeof globalThis.browser!=='undefined';
 function call(object,method,...args) {
@@ -11,7 +11,19 @@ function call(object,method,...args) {
 let settings=C.config(), records={}, limits={}, write=Promise.resolve(), generation=0;
 const ready=call(api.storage.local,'get',null).then(all=>{settings=C.config(all.settings||all);records=all.originCache||{};limits=all.lookupLimits||{};
   for(const [key,value] of Object.entries(all.accountCountries||{})){const [site,...parts]=key.split(':');const normalized=C.accountKey(site,parts.join(':'));const code=C.country(value);if(normalized && code && !records[normalized])records[normalized]={country:code,source:'personal-override',checkedAt:Date.now(),expiresAt:Date.now()+C.DAY};}}).catch(()=>{});
-const languages=new Map(), queue=new Map(); let pumping=false;
+const languages=new Map(), queue=new Map(); let pumping=false, sponsorshipQueue=Promise.resolve();
+const campaignsReady=fetch(api.runtime.getURL('sponsor-catalog.json'))
+  .then(response=>response.ok ? response.json():{campaigns:[]})
+  .then(data=>Array.isArray(data?.campaigns)?data.campaigns:[]).catch(()=>[]);
+async function sponsorOffer(sender,site) {
+  if(!settings.enabled || !settings.sponsorPlacements || !validSender(sender,site))return {ad:null};
+  const all=await call(api.storage.local,'get',{sponsorDaily:null});
+  const campaigns=await campaignsReady;
+  if(!Ads.usable(campaigns).length)return {ad:null};
+  const result=Ads.advance(all.sponsorDaily,Date.now(),true,campaigns);
+  await persist({sponsorDaily:result.state});
+  return {ad:result.ad};
+}
 function persist(values){write=write.catch(()=>{}).then(()=>call(api.storage.local,'set',values));return write;}
 async function put(key,value){
   records[key]=value;
@@ -80,6 +92,11 @@ async function handle(message,sender){
     const key=C.accountKey(item.site,item.author),record=key?C.fresh(records[key]):null;
     if(!record && item.site==='youtube' && settings.allowedCountries.length && settings.youtubeLookups && C.validId('youtube',item.author))enqueue(item.author);
     return {language:settings.englishOnly ? await detect(item.text) : null,country:record?.country||null,source:record?.source||'unknown',key};
+  }
+  if(message?.type==='of:sponsor-candidate') {
+    if(!['x','facebook','youtube'].includes(message.site) || !validSender(sender,message.site))return {ad:null};
+    const next=sponsorshipQueue.catch(()=>{}).then(()=>sponsorOffer(sender,message.site));
+    sponsorshipQueue=next.catch(()=>{});return next;
   }
   if(message?.type==='of:x-disclosure') {
     if(!settings.enabled || !validSender(sender,'x') || !C.validId('x',message.author) || !C.country(message.country))return {error:'invalid-evidence'};
