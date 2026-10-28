@@ -1,0 +1,67 @@
+name: Publish public beta downloads
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "extension/**"
+      - "tools/build.py"
+      - "tests/**"
+      - ".github/workflows/publish-beta.yml"
+      - ".github/RELEASE_NOTES.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run offline unit tests
+        run: node --test tests/core.test.js tests/ads.test.js tests/practical.test.js
+      - name: Build both browser packages
+        run: python tools/build.py
+      - name: Verify archive layout and versions
+        run: |
+          python - <<'PY'
+          import json
+          import zipfile
+          from pathlib import Path
+          from tools.build import VERSION
+          for browser in ('chrome','firefox'):
+              archive = Path('dist') / f'OriginFilter-{browser}-{VERSION}.zip'
+              with zipfile.ZipFile(archive) as z:
+                  names = set(z.namelist())
+                  assert 'manifest.json' in names, archive
+                  assert {'core.js','background.js','content.js','popup.html','privacy.html'} <= names, archive
+                  m = json.loads(z.read('manifest.json'))
+                  assert m['version'] == VERSION, archive
+                  assert 'instagram.com' not in repr(m), archive
+                  assert m['manifest_version'] == 3, archive
+              print(f'Validated {archive}')
+          PY
+      - name: Publish GitHub prerelease once per version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="$(python -c 'from tools.build import VERSION; print(VERSION)')"
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v$VERSION is already published; leaving its release assets unchanged."
+          else
+            gh release create "v$VERSION" "dist/OriginFilter-chrome-$VERSION.zip" "dist/OriginFilter-firefox-$VERSION.zip" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "OriginFilter v$VERSION — public beta" \
+              --notes-file ".github/RELEASE_NOTES.md" \
+              --prerelease
+          fi
