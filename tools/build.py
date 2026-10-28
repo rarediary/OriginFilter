@@ -4,7 +4,7 @@ import shutil
 import zipfile
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.7.0'
+VERSION = '0.8.0'
 MATCHES = ['https://*.x.com/*', 'https://*.twitter.com/*', 'https://*.facebook.com/*', 'https://*.youtube.com/*']
 def manifest(browser):
     m = {'manifest_version':3,'name':'OriginFilter','version':VERSION,

@@ -8,8 +8,8 @@ function call(object,method,...args) {
   if(promiseAPI)return object[method](...args);
   return new Promise((resolve,reject)=>object[method](...args,value=>{const error=api.runtime.lastError;error?reject(new Error(error.message)):resolve(value);}));
 }
-let settings=C.config(), records={}, limits={}, write=Promise.resolve(), generation=0;
-const ready=call(api.storage.local,'get',null).then(all=>{settings=C.config(all.settings||all);records=all.originCache||{};limits=all.lookupLimits||{};
+let settings=C.config(), records={}, limits={}, languageProfiles={}, write=Promise.resolve(), generation=0;
+const ready=call(api.storage.local,'get',null).then(all=>{settings=C.config(all.settings||all);records=all.originCache||{};limits=all.lookupLimits||{};languageProfiles=all.languageProfiles||{};
   for(const [key,value] of Object.entries(all.accountCountries||{})){const [site,...parts]=key.split(':');const normalized=C.accountKey(site,parts.join(':'));const code=C.country(value);if(normalized && code && !records[normalized])records[normalized]={country:code,source:'personal-override',checkedAt:Date.now(),expiresAt:Date.now()+C.DAY};}}).catch(()=>{});
 const languages=new Map(), queue=new Map(); let pumping=false, sponsorshipQueue=Promise.resolve();
 const campaignsReady=fetch(api.runtime.getURL('sponsor-catalog.json'))
@@ -30,10 +30,32 @@ async function put(key,value){
   const entries=Object.entries(records).filter(([,r])=>C.fresh(r)).sort((a,b)=>b[1].checkedAt-a[1].checkedAt).slice(0,5000);
   records=Object.fromEntries(entries); await persist({originCache:records});
 }
+let languageSaveTimer=null;
+function recordLanguage(key,item,lang){
+  if(!settings.learnLanguageAccounts || !key || !lang) return C.accountLanguage(languageProfiles[key]);
+  const source=item.postId||item.text;
+  if(!source) return C.accountLanguage(languageProfiles[key]);
+  const identity=C.fingerprint(source);
+  const prev=languageProfiles[key], next=C.learnProfile(prev,identity,lang);
+  if(next!==prev){
+    languageProfiles[key]=next;
+    if(Object.keys(languageProfiles).length>2000){
+      const entries=Object.entries(languageProfiles).filter(([,v])=>v.expiresAt>Date.now()).sort((a,b)=>b[1].expiresAt-a[1].expiresAt).slice(0,2000);
+      languageProfiles=Object.fromEntries(entries);
+    }
+    if(!languageSaveTimer){languageSaveTimer=setTimeout(()=>{
+      languageSaveTimer=null;void persist({languageProfiles});
+    },1200);}
+  }
+  return C.accountLanguage(languageProfiles[key]);
+}
 async function detect(text){
   const clean=C.cleanText(text); if(!clean)return null;
+  if(C.obviousNonEnglish(clean))return 'non-en';
   if(languages.has(clean))return languages.get(clean);
-  const request=Promise.race([call(api.i18n,'detectLanguage',clean),new Promise(resolve=>setTimeout(()=>resolve(null),2500))]).then(r=>C.language(r,clean)).catch(()=>null);
+  let timer;
+  const request=Promise.race([call(api.i18n,'detectLanguage',clean),new Promise(resolve=>{timer=setTimeout(()=>resolve(null),2500);})])
+    .then(r=>C.language(r,clean)).catch(()=>null).finally(()=>clearTimeout(timer));
   languages.set(clean,request); if(languages.size>1000)languages.delete(languages.keys().next().value);
   return request;
 }
@@ -91,7 +113,9 @@ async function handle(message,sender){
     if(!item || !validSender(sender,item.site) || typeof item.text!=='string' || item.text.length>4000)return {error:'invalid-request'};
     const key=C.accountKey(item.site,item.author),record=key?C.fresh(records[key]):null;
     if(!record && item.site==='youtube' && settings.allowedCountries.length && settings.youtubeLookups && C.validId('youtube',item.author))enqueue(item.author);
-    return {language:settings.englishOnly ? await detect(item.text) : null,country:record?.country||null,source:record?.source||'unknown',key};
+    const language=settings.englishOnly ? await detect(item.text) : null;
+    const accountLanguage=recordLanguage(key,item,language);
+    return {language,country:record?.country||null,source:record?.source||'unknown',accountLanguage,key};
   }
   if(message?.type==='of:sponsor-candidate') {
     if(!['x','facebook','youtube'].includes(message.site) || !validSender(sender,message.site))return {ad:null};
@@ -105,7 +129,7 @@ async function handle(message,sender){
     const now=Date.now();await put(C.accountKey('x',message.author),{country:C.country(message.country),source:'x-account-disclosure',checkedAt:now,expiresAt:now+C.DAY});return {ok:true};
   }
   if(message?.type==='of:clear-cache' && sender.id===api.runtime.id && sender.url?.startsWith(api.runtime.getURL(''))) {
-    generation++;queue.clear();records={};languages.clear();await persist({originCache:{}});return {ok:true};
+    generation++;queue.clear();records={};languages.clear();languageProfiles={};if(languageSaveTimer){clearTimeout(languageSaveTimer);languageSaveTimer=null;}await persist({originCache:{},languageProfiles:{}});return {ok:true};
   }
   return {error:'unsupported-request'};
 }

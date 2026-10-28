@@ -3,16 +3,16 @@
   'use strict';
   const CODES = new Set(('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW').split(' '));
   const DAY = 86400000;
-  const DEFAULTS = Object.freeze({enabled:true, englishOnly:true, unknownLanguage:'show', allowedCountries:['US'], unknownCountry:'hide', keywords:[], blockedAccounts:[], youtubeLookups:false, showPlaceholders:true, sponsorPlacements:false});
+  const DEFAULTS = Object.freeze({enabled:true, englishOnly:true, unknownLanguage:'show', allowedCountries:['US'], unknownCountry:'show', keywords:[], blockedAccounts:[], youtubeLookups:false, showPlaceholders:true, sponsorPlacements:false, learnLanguageAccounts:true});
   const own = (o,k) => o != null && Object.prototype.hasOwnProperty.call(o,k);
   const list = v => Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string').map(x => x.trim()).filter(Boolean))].slice(0,500) : [];
   function config(v={}) {
     return {enabled:v.enabled !== false, englishOnly:v.englishOnly !== false,
       unknownLanguage:v.unknownLanguage === 'hide' ? 'hide' : 'show',
       allowedCountries: own(v,'allowedCountries') ? list(v.allowedCountries).map(x=>x.toUpperCase()).filter(x=>CODES.has(x)) : ['US'],
-      unknownCountry: ['show','hide'].includes(v.unknownCountry) ? v.unknownCountry : own(v,'strictUnknown') ? (v.strictUnknown ? 'hide' : 'show') : v.unknownCountryPolicy === 'allow' ? 'show' : 'hide',
+      unknownCountry: ['show','hide'].includes(v.unknownCountry) ? v.unknownCountry : own(v,'strictUnknown') ? (v.strictUnknown ? 'hide' : 'show') : v.unknownCountryPolicy === 'deny' ? 'hide' : 'show',
       keywords:list(v.keywords).map(x=>x.toLocaleLowerCase()), blockedAccounts:list(v.blockedAccounts),
-      youtubeLookups:v.youtubeLookups === true, showPlaceholders:v.showPlaceholders !== false, sponsorPlacements:v.sponsorPlacements === true};
+      youtubeLookups:v.youtubeLookups === true, showPlaceholders:v.showPlaceholders !== false, sponsorPlacements:v.sponsorPlacements === true, learnLanguageAccounts:v.learnLanguageAccounts !== false};
   }
   function platform(host) {
     host = String(host).toLowerCase();
@@ -58,11 +58,38 @@
     return countryNames.get(text.toLowerCase()) || null;
   }
   function cleanText(text) {return String(text||'').slice(0,8000).replace(/https?:\/\/\S+|www\.\S+|@[\p{L}\p{N}_.]+/gu,' ').replace(/\s+/g,' ').trim().slice(0,4000);}
+  // High-confidence writing-system shortcut: an overwhelmingly non-Latin script is not
+  // English text. This says nothing about the author's country or nationality.
+  function obviousNonEnglish(text) {
+    const letters=(cleanText(text).match(/\p{L}/gu)||[]);
+    if(letters.length<2) return false;
+    const foreign=letters.filter(ch=>!/\p{Script=Latin}/u.test(ch)).length;
+    return foreign>=2 && foreign/letters.length>=0.70;
+  }
   function language(result,text) {
+    if(obviousNonEnglish(text)) return 'non-en';
     if((cleanText(text).match(/\p{L}/gu)||[]).length<16 || result?.isReliable !== true) return null;
     const items=(result.languages||[]).filter(x=>typeof x.language==='string' && Number.isFinite(x.percentage)).sort((a,b)=>b.percentage-a.percentage);
     const top=items[0];
     return top && top.percentage>=80 && !['und','unknown','un'].includes(top.language) ? top.language.toLowerCase().split('-')[0] : null;
+  }
+  // Store only a short hash per observed post; never retain post text. Local only.
+  function fingerprint(value) {
+    let h=2166136261;
+    for(const ch of String(value||'').slice(0,1000)) {h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+    return (h>>>0).toString(36);
+  }
+  function learnProfile(previous,postSignature,lang,now=Date.now()) {
+    if(!postSignature || !lang || typeof lang!=='string') return previous||null;
+    const valid=previous && Number.isFinite(previous.expiresAt) && previous.expiresAt>now;
+    const base=valid ? previous : {english:0,other:0,seen:[],expiresAt:now+30*DAY};
+    if(base.seen.includes(postSignature)) return previous;
+    const seen=[...base.seen.slice(-39),postSignature];
+    return {english:Math.min(40,base.english+(lang==='en'?1:0)),other:Math.min(40,base.other+(lang!=='en'?1:0)),seen,expiresAt:now+30*DAY};
+  }
+  function accountLanguage(profile,now=Date.now()) {
+    if(!profile || !Number.isFinite(profile.expiresAt) || profile.expiresAt<=now) return null;
+    return profile.other>=3 && profile.other/(profile.english+profile.other)>=0.8 ? 'non-en' : null;
   }
   function fresh(record,now=Date.now()) {
     return record && Number.isFinite(record.expiresAt) && record.expiresAt>now && record.expiresAt<=now+32*DAY ? record : null;
@@ -75,6 +102,7 @@
     if(cfg.blockedAccounts.some(x=> x === key || x.replace(/^@/,'').toLowerCase() === String(item.author||'').replace(/^@/,'').toLowerCase())) return 'account';
     if(cfg.englishOnly) {
       if(result.language && result.language !== 'en') return 'language';
+      if(!result.language && cfg.learnLanguageAccounts && result.accountLanguage==='non-en') return 'account-language';
       if(!result.language && cfg.unknownLanguage === 'hide') return 'unknown-language';
     }
     if(cfg.allowedCountries.length) {
@@ -116,7 +144,7 @@
     const id=[...ids][0]; if(requested?.startsWith('UC') && requested!==id) return null;
     return {country:[...countries][0], channelId:id, source:'youtube-declared-country'};
   }
-  const api={DAY,CODES,DEFAULTS,own,config,platform,validId,accountKey,accountFromUrl,country,cleanText,language,fresh,decide,initialData,youtubeCountry};
+  const api={DAY,CODES,DEFAULTS,own,config,platform,validId,accountKey,accountFromUrl,country,cleanText,language,obviousNonEnglish,fingerprint,learnProfile,accountLanguage,fresh,decide,initialData,youtubeCountry};
   root.OriginCore=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(globalThis);

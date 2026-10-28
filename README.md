@@ -1,15 +1,15 @@
-# OriginFilter 0.7.0
+# OriginFilter 0.8.0
 
 **PC-only development release:** Firefox and Chrome. Supported sites: X, Facebook and YouTube websites (not their native apps). Instagram and Android are on hold.
 
 ## Working features
 
-- English-language text filtering using the browser's language detector.
+- English-language text filtering using the browser's language detector, with an immediate non-Latin script shortcut for confidently non-English writing.
 - Local keyword and account blocking.
-- Country allowlist (US by default) for accounts with reliable country evidence; explicit unknown-country handling.
+- Country allowlist (US by default) for accounts with reliable country evidence. New installs show unknown countries by default to prevent an empty feed; strict US-only is still an option.
 - Optional direct public YouTube channel About lookup with daily limits, no login cookies, local cache.
 - Country disclosure capture from X About pages actually visited.
-- Incremental feed processing, reversible filtering and a Show once button.
+- Incremental feed processing, reversible filtering and a Show once button. Optional locally learned language patterns reduce repeated analysis of uncertain posts. No country is guessed from language.
 - **Opt-in, no-tracking sponsor placement engine:** labels, removable settings, at most two/day, one per 12 blocked posts, 30-minute cooldown. **No paying sponsor is bundled and no payment processor is connected.** A demo appears only inside the popup.
 - Safeguards to avoid filtering identified native paid posts on supported sites.
 
@@ -31,7 +31,7 @@ Python 3.10+ and Node 18+ required:
 
 ```
 python tools/build.py
-node --test tests/core.test.js tests/ads.test.js
+node --test tests/core.test.js tests/ads.test.js tests/practical.test.js
 python tests/browser_smoke.py
 python tests/sponsor_browser.py
 ```
@@ -47,3 +47,7 @@ Core filtering remains free, with optional sponsored notices. Campaigns are buil
 ## Privacy
 
 No extension-operated server, analytics SDK, browser-history sale, automated reporting, or ad click telemetry. Country records, sponsor counters and preferences stay local. Optional YouTube channel requests go directly to YouTube and disclose requested channel IDs/handles to YouTube's servers. See `extension/privacy.html`.
+
+## Practical improvement target
+
+80% fewer unwanted posts is a **goal, not a measured result**. Real-world effectiveness depends on the composition of the feed and country evidence availability. The built-in stats report actual filtered cards; no claim of 80% accuracy is made. The balanced default prioritizes visible improvements without hiding every unknown account. Strict mode remains available, but can empty a feed.

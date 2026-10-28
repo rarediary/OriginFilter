@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "OriginFilter",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Local English-language and evidence-based account-country filters for X, Facebook and YouTube. Country coverage is limited.",
   "permissions": [
     "storage"

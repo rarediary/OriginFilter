@@ -38,7 +38,7 @@
     if(ad){st.sponsorLink.textContent=ad.advertiser+' — '+ad.title;st.sponsorLink.href=ad.url;st.sponsorDetail.textContent=ad.description;}
     if(st.el.previousSibling!==st.notice)st.el.before(st.notice);
   }
-  const labels={'keyword':'Blocked keyword','account':'Blocked account','language':'Not English','unknown-language':'Language unknown','country':'Outside selected countries','unknown-country':'Country unknown'};
+  const labels={'keyword':'Blocked keyword','account':'Blocked account','language':'Not English','unknown-language':'Language unknown','country':'Outside selected countries','unknown-country':'Country unknown','account-language':'Account usually posts in other languages'};
   function render(st,reason){
     st.reason=reason;
     if(!reason){st.el.removeAttribute('data-originfilter-blocked');st.notice?.remove();st.notice=null;st.sponsor=null;return;}
