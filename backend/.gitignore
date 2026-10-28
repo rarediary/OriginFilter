@@ -1,0 +1,5 @@
+origins.sqlite3
+origins.sqlite3-shm
+origins.sqlite3-wal
+__pycache__/
+.env
