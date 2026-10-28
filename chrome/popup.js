@@ -1,22 +1,25 @@
-const api=globalThis.browser??globalThis.chrome;
-const defaults={enabled:true,keywords:[],blockedAccounts:[],languages:[],allowedCountries:["US"],accountCountries:{},strictUnknown:false};
-const $=id=>document.getElementById(id);
-api.storage.local.get(defaults,s=>{
- $("enabled").checked=s.enabled;$("strictUnknown").checked=s.strictUnknown;
- for(const k of ["keywords","blockedAccounts"])$(k).value=(s[k]||[]).join("\n");
- $("allowedCountries").value=(s.allowedCountries||[]).join(",");
- $("accountCountries").value=Object.entries(s.accountCountries||{}).map(([k,v])=>k+"="+v).join("\n");
- document.querySelectorAll('[name="lang"]').forEach(el=>el.checked=(s.languages||[]).includes(el.value));
+'use strict';
+const api=globalThis.browser??globalThis.chrome,C=OriginCore,$=id=>document.getElementById(id);
+function call(o,m,...args){if(typeof globalThis.browser!=='undefined')return o[m](...args);return new Promise((res,rej)=>o[m](...args,v=>{const e=api.runtime.lastError;e?rej(new Error(e.message)):res(v);}));}
+let loaded=false;
+function fill(cfg){for(const key of ['enabled','englishOnly','youtubeLookups','showPlaceholders'])$(key).checked=cfg[key];for(const key of ['unknownCountry','unknownLanguage'])$(key).value=cfg[key];$('allowedCountries').value=cfg.allowedCountries.join(', ');for(const key of ['keywords','blockedAccounts'])$(key).value=cfg[key].join('\n');}
+async function refresh(){const saved=await call(api.storage.local,'get',null);fill(C.config(saved.settings||saved));$('cache').textContent=Object.keys(saved.originCache||{}).length+' cached account records';loaded=true;}
+refresh().catch(()=>{$('status').textContent='Could not read settings. Reload the extension.';});
+call(api.tabs,'query',{active:true,currentWindow:true}).then(tabs=>tabs[0]?.id ? call(api.tabs,'sendMessage',tabs[0].id,{type:'of:stats'}) : null).then(s=>{if(s)$('stats').textContent=`${s.site}: ${s.hidden} of ${s.cards} detected cards hidden on this page.`;}).catch(()=>{});
+$('settings').addEventListener('submit',async event=>{
+  event.preventDefault();if(!loaded)return;
+  const countries=$('allowedCountries').value.split(',').map(x=>x.trim().toUpperCase()).filter(Boolean);
+  if(countries.some(x=>!C.CODES.has(x))){$('status').textContent='Use valid country codes such as US, CA, GB.';return;}
+  const consent=$('youtubeLookups').checked;
+  // Must be invoked during the user's click, before other awaited operations.
+  const permission=consent && api.runtime.getManifest().browser_specific_settings?.gecko ? call(api.permissions,'request',{data_collection:['websiteContent']}) : Promise.resolve(true);
+  $('save').disabled=true;
+  try{
+    if(!await permission){$('youtubeLookups').checked=false;$('status').textContent='YouTube lookups were not enabled. Consent is required.';return;}
+    const lines=id=>$(id).value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    const settings=C.config({enabled:$('enabled').checked,englishOnly:$('englishOnly').checked,youtubeLookups:consent,showPlaceholders:$('showPlaceholders').checked,allowedCountries:countries,unknownCountry:$('unknownCountry').value,unknownLanguage:$('unknownLanguage').value,keywords:lines('keywords'),blockedAccounts:lines('blockedAccounts')});
+    await call(api.storage.local,'set',{settings});$('status').textContent='Saved. Open feeds update automatically.';
+  }catch{$('status').textContent='Could not save. Check the extension permissions.';}finally{$('save').disabled=false;}
 });
-$("save").onclick=()=>{
- const lines=k=>$(k).value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
- const countries={};
- for(const line of lines("accountCountries")){
-  const match=line.match(/^(instagram|facebook|x):([a-zA-Z0-9._]+)\s*=\s*([a-zA-Z]{2})$/);
-  if(!match){$("status").textContent="Invalid account mapping: "+line;return;}
-  countries[match[1]+":"+match[2].toLowerCase()]=match[3].toUpperCase();
- }
- const allowed=$("allowedCountries").value.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean);
- if(allowed.some(s=>!/^[A-Z]{2}$/.test(s))){$("status").textContent="Use two-letter country codes, e.g. US";return;}
- api.storage.local.set({enabled:$("enabled").checked,strictUnknown:$("strictUnknown").checked,keywords:lines("keywords"),blockedAccounts:lines("blockedAccounts"),languages:[...document.querySelectorAll('[name="lang"]:checked')].map(e=>e.value),allowedCountries:allowed,accountCountries:countries},()=>{$("status").textContent="Saved";});
-};
+$('enabled').addEventListener('change',async()=>{if(!loaded)return;try{const saved=await call(api.storage.local,'get',null);await call(api.storage.local,'set',{settings:{...C.config(saved.settings||saved),enabled:$('enabled').checked}});}catch{$('status').textContent='Could not change filtering.';}});
+$('clear').addEventListener('click',async()=>{try{await call(api.runtime,'sendMessage',{type:'of:clear-cache'});$('cache').textContent='Country cache cleared.';}catch{$('status').textContent='Could not clear cache.';}});

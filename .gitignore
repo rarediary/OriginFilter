@@ -1,0 +1,7 @@
+dist/
+__pycache__/
+*.pyc
+node_modules/
+.env
+*.sqlite3*
+tests/popup.png

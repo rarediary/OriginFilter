@@ -1,0 +1,2 @@
+/* Removing this attribute restores the site's original inline styles untouched. */
+[data-originfilter-blocked] { display: none !important; }

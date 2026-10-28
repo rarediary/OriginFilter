@@ -1,50 +1,66 @@
-# OriginFilter
+# OriginFilter 0.6.0
 
-Early-stage browser extension for local feed filtering. Firefox first, Chrome second. Both now share the same filtering behavior.
+PC-only development build. Firefox first, Chrome second. **X, Facebook and YouTube** are the current targets; Instagram and Android are out of this phase.
 
-## Current prototype (0.1.0)
-- Supported web feeds: Instagram, Facebook and X/Twitter (best-effort DOM selectors).
-- Block posts containing user-specified keywords.
-- Block posts with links matching user-specified account handles.
-- Optional Unicode **script** checks: Arabic, Devanagari, Cyrillic and Han.
-- Dynamically rescan newly loaded posts; settings stored locally.
+## Implemented
 
-**Not implemented:** creator country-of-origin detection, actual language classification, cross-browser Android support, native-app filtering, billing or advertisements. Script detection is not proof of a language, nationality, or country. Site changes can break selectors. No claims of universal filtering.
+- Browser-native, local text-language detection instead of alphabet-to-language guesses.
+- English-only rules, keyword blocking and account blocking.
+- Incremental card processing, bounded language cache, and recycled-card handling.
+- Separate known-country and unknown-country decisions. Unknown never means foreign.
+- Strict country mode (US by default) with explanatory placeholders and Show once.
+- Optional direct public YouTube About lookups, no API key or OriginFilter server. Consent required; login cookies omitted. One request per 10 seconds, 120/day maximum, timeout and backoff on access errors. Country results cache for seven days; missing/error results also cache.
+- Passive X account-country disclosure capture when the user opens `/handle/about`. This does NOT automatically investigate every timeline author.
+- Country cache, source labels, expiry and deletion controls. Legacy manual records remain personal overrides.
+- Same shared source for both browsers, bundled privacy notice, logo and build script.
 
-## Install for testing
+## Important limitations
 
-### Firefox desktop
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on**.
-3. Select `firefox/manifest.json` in a local checkout.
-4. Open a supported website, click the OriginFilter toolbar icon, configure rules and save.
+**This is not a finished automatic US-only commercial service.** Facebook's automatic origin source is unresolved. X origin coverage depends on disclosures actually encountered. The YouTube parser only accepts explicit About-country metadata bound to a channel ID; if a page is unavailable, changes format, or omits country, the result is unknown. YouTube country is self-declared, not proof of residence. Video/audio language is not analyzed; YouTube filtering uses titles. Store signing/publishing, live logged-in compatibility and sponsorship sales are not completed.
 
-Temporary add-ons disappear when Firefox restarts. The extension has not yet been signed or submitted for review.
+Strict mode may hide most posts because many countries are unknown. Switch “When account country is unknown” to Show for less restrictive operation. No proxy, VPN, server-side region hack, private-message inspection, IP attribution, race classification, or hidden AI service is used.
 
-### Chrome desktop
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Click **Load unpacked** and choose the `chrome/` folder.
-4. Open a supported website and configure the extension.
+## Install on PC
 
-## Testing checklist
-- With filtering disabled, no posts should be hidden.
-- Add a keyword seen in a test post, save, and check whether the post disappears.
-- Remove the keyword and check whether the post returns.
-- Check infinite scroll and page navigation on each supported site.
-- Verify no browser console errors, unexpected layout changes or excessive CPU usage.
-- Confirm the filters do not incorrectly classify script or country of origin.
+Firefox: extract `dist/OriginFilter-firefox-0.6.0.zip`; open `about:debugging#/runtime/this-firefox`; select Load Temporary Add-on and the extracted `manifest.json`. This temporary install ends on browser restart. A signed Firefox store package has not been obtained.
 
-## Architecture and roadmap
-1. Verify selectors on real feeds; add fixture-based automated tests.
-2. Extract shared filtering engine and per-site adapters.
-3. Add proper language identification, avoiding script-only false positives.
-4. Research creator-country evidence, confidence and unknown-origin policy.
-5. Test Android delivery separately. Chrome Android does not load ordinary desktop extensions.
-6. Validate privacy, store policies and willingness to pay before subscriptions.
+Chrome: extract `dist/OriginFilter-chrome-0.6.0.zip`; open `chrome://extensions`, enable Developer mode, choose Load unpacked and select the extracted folder.
 
-## Monetization principles
-Free local keyword filtering can build trust; paid features could include validated creator-country classifications and synchronized rules. Do **not** inject ads into third-party feeds without explicit opt-in, conspicuous sponsorship labels and a policy/legal review. No ad injection is implemented. Do not sell browsing histories.
+Refresh already open supported tabs after installation. Open the toolbar popup, choose your rules and save. Public YouTube lookups are OFF until you explicitly consent. No paid service is required.
 
-## Privacy
-This prototype stores rules in browser-local extension storage and does not call a remote classification server. It accesses DOM content on the supported websites to apply local filters.
+## Build and checks
+
+Python 3.10+ and Node 18+:
+
+```
+python tools/build.py
+node --test tests/core.test.js
+```
+
+Optional synthetic DOM checks need Python Playwright and Chromium:
+
+```
+python tests/browser_smoke.py
+```
+
+`extension/` is canonical. `firefox/` and `chrome/` are generated copies with browser-specific manifests. The browser ZIPs deliberately place `manifest.json` at the ZIP root, as required for extension packaging; the source ZIP has a matching top-level folder.
+
+### Verification performed in this development session
+
+24 core tests passed. Synthetic Chromium 144 DOM checks passed for all three adapters, including new-card detection, language decisions with a mocked detector, cached-country changes, strict unknown handling, pause/restoration and no repeated idle classifications. This environment blocks actual extension installation and external social-page navigation by administrator policy. The checks therefore used local synthetic DOMs, mocked extension APIs/language results and a fixture URL—not logged-in feeds, installed Firefox, or the native language model. See `tests/browser-results.json`.
+
+## Monetization
+
+The chosen model remains free filtering supported by occasional explicitly disclosed, opt-in sponsorships. No advertising, ad network, payment processing or billing is active in this build. Do not sell browsing histories or treat a technical placement as permission to inject advertisements into other sites.
+
+## Previous backend
+
+Existing `backend/` code remains in GitHub as a separate experimental development API. Version 0.6.0 does not call it or require hosting. It is not a production service and should not be exposed publicly.
+
+## Technical references
+
+- https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/i18n/detectLanguage
+- https://developer.chrome.com/docs/extensions/reference/api/i18n
+- https://developers.google.com/youtube/data/reference/rest/v3/channels
+- https://help.x.com/en/managing-your-account/how-to-change-country-settings
+- https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/

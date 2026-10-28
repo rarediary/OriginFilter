@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OriginFilter</title><link rel="stylesheet" href="popup.css"></head>
+<body><header><img src="icons/icon-48.png" alt="" width="44" height="44"><div><h1>OriginFilter</h1><p>X · Facebook · YouTube / PC</p></div></header>
+<main><label class="toggle"><input type="checkbox" id="enabled"> Filtering enabled</label><p id="stats" class="status">Open a supported feed.</p>
+<form id="settings"><fieldset><legend>What stays in your feed</legend><label class="toggle"><input id="englishOnly" type="checkbox"> English-language text only</label>
+<label for="allowedCountries">Allowed account countries</label><input type="text" id="allowedCountries" placeholder="US" spellcheck="false"><p class="hint">Two-letter country codes, separated by commas. Blank means any country.</p>
+<label for="unknownCountry">When account country is unknown</label><select id="unknownCountry"><option value="hide">Hide — strict country filtering</option><option value="show">Show — do not assume a country</option></select>
+<label for="unknownLanguage">When text language is uncertain</label><select id="unknownLanguage"><option value="show">Show — short text is often uncertain</option><option value="hide">Hide — strict language filtering</option></select>
+<label class="toggle"><input id="showPlaceholders" type="checkbox"> Show a compact reason and “Show once” button</label></fieldset>
+<fieldset><legend>Automatic country information</legend><label class="toggle"><input id="youtubeLookups" type="checkbox"> Enable public YouTube channel lookups</label><p class="hint">Optional: sends encountered channel IDs/handles to YouTube to read public About pages, without login cookies. Cached locally; at most one request per 10 seconds and 120 per day. No paid API or OriginFilter server.</p><p class="warning">Countries are not available for every account. YouTube country is self-declared. X disclosures are cached when you open an account’s About page. Automatic Facebook country lookup is not available. Strict mode may hide most posts.</p></fieldset>
+<details><summary>Keyword and account rules</summary><label for="keywords">Blocked keywords — one per line</label><textarea id="keywords" rows="3"></textarea><label for="blockedAccounts">Blocked accounts — one per line</label><textarea id="blockedAccounts" rows="3" placeholder="x:handle&#10;youtube:@handle&#10;facebook:page"></textarea></details>
+<button type="submit" id="save">Save preferences</button><p id="status" role="status" aria-live="polite"></p></form>
+<button type="button" class="secondary" id="clear">Clear local country cache</button><p class="hint" id="cache"></p>
+<footer>Local-first. Free filtering. No advertising, payments, or telemetry in this build. Future sponsorships require consent. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><br>Development build 0.6.0 — not store-published.</footer></main>
+<script src="core.js"></script><script src="popup.js"></script></body></html>

@@ -1,32 +1,47 @@
 {
   "manifest_version": 3,
   "name": "OriginFilter",
-  "version": "0.1.0",
-  "description": "Local language, keyword and account filtering on supported feeds.",
+  "version": "0.6.0",
+  "description": "Local English-language and evidence-based account-country filters for X, Facebook and YouTube. Country coverage is limited.",
   "permissions": [
     "storage"
   ],
   "host_permissions": [
-    "*://*.instagram.com/*",
-    "*://*.facebook.com/*",
-    "*://*.x.com/*",
-    "*://*.twitter.com/*"
+    "https://*.x.com/*",
+    "https://*.twitter.com/*",
+    "https://*.facebook.com/*",
+    "https://*.youtube.com/*"
   ],
+  "icons": {
+    "48": "icons/icon-48.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/icon-48.png"
+    }
+  },
   "content_scripts": [
     {
       "matches": [
-        "*://*.instagram.com/*",
-        "*://*.facebook.com/*",
-        "*://*.x.com/*",
-        "*://*.twitter.com/*"
+        "https://*.x.com/*",
+        "https://*.twitter.com/*",
+        "https://*.facebook.com/*",
+        "https://*.youtube.com/*"
       ],
       "js": [
+        "core.js",
+        "adapters.js",
         "content.js"
       ],
-      "run_at": "document_idle"
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_start"
     }
   ],
-  "action": {
-    "default_popup": "popup.html"
-  }
+  "background": {
+    "service_worker": "background.js"
+  },
+  "minimum_chrome_version": "112"
 }

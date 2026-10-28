@@ -1,0 +1,55 @@
+{
+  "browser": "Chromium 144",
+  "mode": "synthetic DOM with mocked extension API/language results",
+  "results": [
+    {
+      "site": "x",
+      "passed": [
+        "English shown",
+        "Spanish hidden",
+        "new cards",
+        "recycled text",
+        "strict unknown",
+        "cache update",
+        "pause restoration",
+        "no repeated idle classification"
+      ]
+    },
+    {
+      "site": "facebook",
+      "passed": [
+        "English shown",
+        "Spanish hidden",
+        "new cards",
+        "recycled text",
+        "strict unknown",
+        "cache update",
+        "pause restoration",
+        "no repeated idle classification"
+      ]
+    },
+    {
+      "site": "youtube",
+      "passed": [
+        "English shown",
+        "Spanish hidden",
+        "new cards",
+        "recycled text",
+        "strict unknown",
+        "cache update",
+        "pause restoration",
+        "no repeated idle classification"
+      ]
+    }
+  ],
+  "extra": [
+    "X disclosure bound to About route"
+  ],
+  "page_errors": [],
+  "not_verified": [
+    "extension installation blocked by environment policy",
+    "native i18n model",
+    "logged-in live feeds",
+    "live public country lookup coverage"
+  ]
+}
